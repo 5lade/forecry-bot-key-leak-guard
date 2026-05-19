@@ -254,7 +254,7 @@ acceptance: |
   Tests or smoke fixtures show transient provider failure retries with exponential backoff, permanent failure lands in dead-letter/error state, /metrics exposes counts, and log redaction prevents raw secrets.
 ```
 
-- [ ] key-leak-p2-002-settings-and-alert-policy
+- [x] key-leak-p2-002-settings-and-alert-policy
 ```yaml
 id: key-leak-p2-002-settings-and-alert-policy
 tier: P2
