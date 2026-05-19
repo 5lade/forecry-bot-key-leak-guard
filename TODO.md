@@ -212,7 +212,7 @@ acceptance: |
   bin/render-digest-fixture.sh emits a digest containing every required field across at least 7 sample days. Telegram formatting is readable and does not leak raw secrets.
 ```
 
-- [ ] key-leak-p1-006-manual-scan-command
+- [x] key-leak-p1-006-manual-scan-command
 ```yaml
 id: key-leak-p1-006-manual-scan-command
 tier: P1
