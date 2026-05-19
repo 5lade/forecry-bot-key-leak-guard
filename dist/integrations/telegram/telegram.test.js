@@ -70,3 +70,21 @@ test('github install route returns actionable missing credential guidance withou
     assert.match(install.json().message, /GITHUB_APP_ID/);
     await app.close();
 });
+test('manual scan command runs fixture scan and unknown repos are clear errors', async () => {
+    resetLocalTelegramStore();
+    const { resetOnboardingStore } = await import('../../onboarding/localStore.js');
+    resetOnboardingStore();
+    const app = await buildApp(loadConfig({ NODE_ENV: 'test', LOCAL_FIXTURE_MODE: 'true', HMAC_SECRET: 'hmac-secret-for-manual-scan-tests' }));
+    await app.inject({ method: 'POST', url: '/webhooks/telegram', headers: { 'content-type': 'application/json' }, payload: JSON.stringify({ update_id: 20, message: { text: '/start', chat: { id: 999 }, from: { id: 999 } } }) });
+    await app.inject({ method: 'GET', url: '/oauth/github/callback?workspace_id=wksp_tg_999&installation_id=888&repositories=demo/key-leak-guard-fixture' });
+    const scan = await app.inject({ method: 'POST', url: '/webhooks/telegram', headers: { 'content-type': 'application/json' }, payload: JSON.stringify({ update_id: 21, message: { text: '/scan demo/key-leak-guard-fixture', chat: { id: 999 }, from: { id: 999 } } }) });
+    assert.equal(scan.statusCode, 200);
+    assert.match(scan.json().text, /Manual scan completed/);
+    assert.match(scan.json().text, /Scanned file count: 3/);
+    assert.match(scan.json().text, /critical=1/);
+    assert.match(scan.json().text, /Incident links: inc_manual_/);
+    const unknown = await app.inject({ method: 'POST', url: '/webhooks/telegram', headers: { 'content-type': 'application/json' }, payload: JSON.stringify({ update_id: 22, message: { text: '/scan missing/repo', chat: { id: 999 }, from: { id: 999 } } }) });
+    assert.equal(unknown.statusCode, 200);
+    assert.match(unknown.json().text, /Unknown repo "missing\/repo"/);
+    await app.close();
+});

@@ -3,6 +3,7 @@ import type { GitHubIncidentPayload } from '../github/types.js';
 import { githubCredentialStatus, githubSetupUrl } from '../github/app.js';
 import { ensureTelegramWorkspace, snapshotForTelegramChat } from '../../onboarding/localStore.js';
 import { listLocalIncidents } from './store.js';
+import { runManualRepoScan } from '../../jobs/repoScan.js';
 
 export interface TelegramMessage {
   message_id?: number;
@@ -25,7 +26,8 @@ export interface TelegramUpdate {
 }
 
 export function routeTelegramCommand(message: TelegramMessage, config?: AppConfig): string {
-  const command = (message.text ?? '').trim().split(/\s+/)[0]?.split('@')[0]?.toLowerCase() || '/status';
+  const parts = (message.text ?? '').trim().split(/\s+/).filter(Boolean);
+  const command = parts[0]?.split('@')[0]?.toLowerCase() || '/status';
   switch (command) {
     case '/start': {
       const snapshot = ensureTelegramWorkspace({ chatId: message.chat.id, userId: message.from?.id, username: message.from?.username, firstName: message.from?.first_name });
@@ -46,8 +48,16 @@ export function routeTelegramCommand(message: TelegramMessage, config?: AppConfi
       if (!open.length) return 'No active incidents in local persistence.';
       return open.map((record) => `${record.incident.id}: ${record.incident.severity} ${record.incident.provider} in ${record.incident.repo}:${record.incident.filePath}:${record.incident.line} (${record.status})`).join('\n');
     }
-    case '/scan':
-      return 'Manual scan stub: repo scan scheduling will run in the next core-feature ticket. For now, use the GitHub webhook fixture or /status.';
+    case '/scan': {
+      const target = parts[1] ?? 'all';
+      const snapshot = snapshotForTelegramChat(message.chat.id) ?? ensureTelegramWorkspace({ chatId: message.chat.id, userId: message.from?.id, username: message.from?.username, firstName: message.from?.first_name });
+      const result = runManualRepoScan({ target, repositories: snapshot.repositories, hmacSecret: config?.hmacSecret });
+      if (!result.ok) return result.message;
+      const severities = result.findingsBySeverity;
+      const incidentText = result.incidentLinks.length ? result.incidentLinks.join(', ') : 'none';
+      const repoText = result.results.map((repoResult) => `${repoResult.repo}: ${repoResult.scannedFiles}/${repoResult.checkpoint.totalFiles} files`).join('; ');
+      return `Manual scan completed for ${target} in ${result.durationMs}ms. Scanned file count: ${result.scannedFileCount}. Findings by severity: critical=${severities.critical}, high=${severities.high}, medium=${severities.medium}, low=${severities.low}. Incident links: ${incidentText}. Checkpoints: ${repoText}.`;
+    }
     case '/digest':
       return `Digest stub: ${listLocalIncidents().length} total incident(s) tracked locally.`;
     case '/settings':
