@@ -4,7 +4,7 @@ Rule8 format. Work top-down. Highest priority open `[ ]` ticket is next.
 
 ## P0 — Blockers
 
-- [ ] key-leak-p0-001-app-skeleton
+- [x] key-leak-p0-001-app-skeleton
 ```yaml
 id: key-leak-p0-001-app-skeleton
 tier: P0

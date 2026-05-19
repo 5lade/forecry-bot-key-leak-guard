@@ -1,0 +1,28 @@
+{
+  "name": "forecry-bot-key-leak-guard",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Telegram-first secret exposure and AI API spend watchdog for indie builders.",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/index.js",
+    "dev": "tsx src/index.ts",
+    "test": "npm run build && node --test dist/**/*.test.js",
+    "smoke": "npm run build && node dist/smoke.test.js"
+  },
+  "dependencies": {
+    "@fastify/helmet": "^13.0.2",
+    "fastify": "^5.2.1",
+    "pino": "^9.6.0",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}
