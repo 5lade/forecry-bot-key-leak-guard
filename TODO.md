@@ -49,7 +49,7 @@ acceptance: |
   Schema validates/generates cleanly. Local tests can create an in-memory/mock or test database record path for account -> workspace -> repository -> finding -> incident. Raw secret fields are not present anywhere in the schema.
 ```
 
-- [ ] key-leak-p0-003-secret-safe-scanner-core
+- [x] key-leak-p0-003-secret-safe-scanner-core
 ```yaml
 id: key-leak-p0-003-secret-safe-scanner-core
 tier: P0
