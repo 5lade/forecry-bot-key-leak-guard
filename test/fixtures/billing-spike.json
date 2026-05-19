@@ -1,0 +1,46 @@
+{
+  "recentFindings": [
+    {
+      "id": "inc_openai_recent_leak",
+      "provider": "openai",
+      "repo": "5lade/demo-ai-app",
+      "fingerprint": "hmac_sha256:openai:fixture",
+      "detectedAt": "2026-05-19T02:30:00.000Z",
+      "severity": "critical"
+    },
+    {
+      "id": "inc_stripe_old_leak",
+      "provider": "stripe",
+      "repo": "5lade/old-checkout",
+      "fingerprint": "hmac_sha256:stripe:fixture",
+      "detectedAt": "2026-05-17T00:00:00.000Z",
+      "severity": "high"
+    }
+  ],
+  "snapshots": [
+    {
+      "id": "openai_20260519_0400",
+      "provider": "OpenAI",
+      "workspaceId": "ws_fixture",
+      "capturedAt": "2026-05-19T04:00:00.000Z",
+      "hourlySpendUsd": 48,
+      "baselineHourlySpendUsd": 12
+    },
+    {
+      "id": "anthropic_20260519_0400",
+      "provider": "anthropic",
+      "workspaceId": "ws_fixture",
+      "capturedAt": "2026-05-19T04:00:00.000Z",
+      "hourlySpendUsd": 32,
+      "baselineHourlySpendUsd": 8
+    },
+    {
+      "id": "stripe_20260519_0400",
+      "provider": "stripe",
+      "workspaceId": "ws_fixture",
+      "capturedAt": "2026-05-19T04:00:00.000Z",
+      "hourlySpendUsd": 16,
+      "baselineHourlySpendUsd": 12
+    }
+  ]
+}
