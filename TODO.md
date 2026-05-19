@@ -293,7 +293,7 @@ acceptance: |
   Invalid Telegram/GitHub webhook secrets are rejected, large payloads are capped, stored provider credentials are encrypted, delete workspace purges credentials/repo data, and tests confirm raw secrets are not persisted or logged.
 ```
 
-- [ ] key-leak-p2-004-acceptance-runner-completion
+- [x] key-leak-p2-004-acceptance-runner-completion
 ```yaml
 id: key-leak-p2-004-acceptance-runner-completion
 tier: P2
