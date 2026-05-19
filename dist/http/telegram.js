@@ -2,6 +2,7 @@ import { renderCriticalLeakAlert } from '../renderers/alerts.js';
 import { renderRotationChecklist } from '../renderers/rotation.js';
 import { routeTelegramCommand, sampleIncidentForTelegram } from '../integrations/telegram/commands.js';
 import { getLocalIncident, updateLocalIncidentStatus, upsertLocalIncident } from '../integrations/telegram/store.js';
+import { recordAuditEvent, safeEqualSecret, checkRateLimit } from '../security/index.js';
 const ACTION_STATUS = {
     acknowledge: 'acknowledged',
     resolve: 'resolved',
@@ -10,10 +11,15 @@ const ACTION_STATUS = {
 };
 export function registerTelegramRoutes(app, config) {
     app.post('/webhooks/telegram', async (request, reply) => {
+        const rate = checkRateLimit({ key: `telegram:${request.ip}`, limit: config.webhookRateLimitPerMinute, windowMs: 60_000 });
+        if (!rate.allowed)
+            return reply.code(429).header('retry-after', Math.ceil((rate.resetAt - Date.now()) / 1000)).send({ ok: false, error: 'rate_limited' });
         if (config.telegramWebhookSecret) {
             const provided = headerValue(request.headers['x-telegram-bot-api-secret-token']);
-            if (provided !== config.telegramWebhookSecret)
+            if (!safeEqualSecret(provided, config.telegramWebhookSecret)) {
+                recordAuditEvent({ actor: 'telegram-webhook', action: 'webhook_secret_rejected', metadata: { ip: request.ip } });
                 return reply.code(401).send({ ok: false, error: 'invalid_telegram_secret' });
+            }
         }
         const update = parsedBodyFrom(request.body);
         if (update.callback_query)
@@ -45,6 +51,7 @@ function handleCallback(data, reply) {
     if (!status)
         return reply.code(200).send({ ok: true, ignored: action });
     const updated = updateLocalIncidentStatus(incidentId, status, action ?? status);
+    recordAuditEvent({ actor: 'telegram-callback', action: `incident_${status}`, target: incidentId, metadata: { action } });
     return reply.code(200).send({ ok: true, incidentId, status: updated?.status, method: 'editMessageReplyMarkup' });
 }
 function headerValue(value) {

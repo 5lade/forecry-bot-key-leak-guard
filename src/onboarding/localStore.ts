@@ -1,4 +1,5 @@
-import type { AccountRecord, RepositoryRecord, WorkspaceRecord } from '../domain/types.js';
+import type { AccountRecord, Plan, RepositoryRecord, WorkspaceRecord } from '../domain/types.js';
+import { planLimitCopy, repositoryLimitForPlan } from '../settings/planLimits.js';
 
 export interface InstallationRecord {
   id: string;
@@ -11,11 +12,19 @@ export interface InstallationRecord {
   updatedAt: string;
 }
 
+export interface PlanGateResult {
+  allowed: number;
+  attempted: number;
+  blocked: number;
+  message?: string;
+}
+
 export interface OnboardingSnapshot {
   account: AccountRecord;
   workspace: WorkspaceRecord;
   installation?: InstallationRecord;
   repositories: RepositoryRecord[];
+  planGate?: PlanGateResult;
 }
 
 const accounts = new Map<string, AccountRecord>();
@@ -93,7 +102,19 @@ export function recordGitHubInstallation(input: {
     createdAt: existing?.createdAt ?? now,
     updatedAt: now
   });
-  for (const repo of input.repositories ?? []) {
+  const account = accounts.get(workspace.accountId)!;
+  const existingRepos = [...repositories.values()].filter((repo) => repo.workspaceId === input.workspaceId);
+  const existingNames = new Set(existingRepos.map((repo) => repo.fullName));
+  const incomingRepos = input.repositories ?? [];
+  const allowed = repositoryLimitForPlan(account.plan);
+  let acceptedNewCount = 0;
+  let blocked = 0;
+  for (const repo of incomingRepos) {
+    const isExisting = existingNames.has(repo.fullName);
+    if (!isExisting && existingRepos.length + acceptedNewCount >= allowed) {
+      blocked += 1;
+      continue;
+    }
     const repoId = `repo_${sanitizeId(repo.fullName)}`;
     repositories.set(repoId, {
       id: repoId,
@@ -104,8 +125,20 @@ export function recordGitHubInstallation(input: {
       private: repo.private ?? true,
       scanEnabled: true
     });
+    if (!isExisting) acceptedNewCount += 1;
   }
-  return snapshotForWorkspace(input.workspaceId)!;
+  const snapshot = snapshotForWorkspace(input.workspaceId)!;
+  if (blocked) snapshot.planGate = { allowed, attempted: existingRepos.length + incomingRepos.length, blocked, message: planLimitCopy({ plan: account.plan, attempted: existingRepos.length + incomingRepos.length, allowed, blocked }) };
+  return snapshot;
+}
+
+export function updateWorkspacePlan(workspaceId: string, plan: Plan): OnboardingSnapshot {
+  const workspace = workspaces.get(workspaceId);
+  if (!workspace) throw new Error(`workspace_not_found:${workspaceId}`);
+  const account = accounts.get(workspace.accountId);
+  if (!account) throw new Error(`account_not_found:${workspace.accountId}`);
+  accounts.set(account.id, { ...account, plan });
+  return snapshotForWorkspace(workspaceId)!;
 }
 
 export function purgeWorkspace(workspaceId: string): { workspaceDeleted: boolean; repositoriesDeleted: number; installationsDeleted: number; accountDeleted: boolean } {

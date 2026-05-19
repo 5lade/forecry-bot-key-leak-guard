@@ -11,7 +11,15 @@ const schema = z.object({
     GITHUB_APP_ID: z.string().optional(),
     GITHUB_APP_PRIVATE_KEY: z.string().optional(),
     APP_BASE_URL: z.string().url().optional(),
+    STRIPE_SECRET_KEY: z.string().optional(),
+    STRIPE_WEBHOOK_SECRET: z.string().optional(),
+    STRIPE_PRICE_STARTER: z.string().optional(),
+    STRIPE_PRICE_PRO: z.string().optional(),
+    STRIPE_PRICE_AGENCY: z.string().optional(),
     HMAC_SECRET: z.string().optional(),
+    CREDENTIAL_ENCRYPTION_SECRET: z.string().optional(),
+    MAX_REQUEST_BYTES: z.coerce.number().int().positive().default(1024 * 1024),
+    WEBHOOK_RATE_LIMIT_PER_MINUTE: z.coerce.number().int().positive().default(120),
     LOCAL_FIXTURE_MODE: z.coerce.boolean().default(false)
 });
 export function loadConfig(env = process.env) {
@@ -26,6 +34,8 @@ export function loadConfig(env = process.env) {
             missingForProduction.push('GITHUB_WEBHOOK_SECRET');
         if (!parsed.HMAC_SECRET)
             missingForProduction.push('HMAC_SECRET');
+        if (!parsed.CREDENTIAL_ENCRYPTION_SECRET)
+            missingForProduction.push('CREDENTIAL_ENCRYPTION_SECRET');
     }
     return {
         nodeEnv: parsed.NODE_ENV,
@@ -39,7 +49,15 @@ export function loadConfig(env = process.env) {
         githubAppId: parsed.GITHUB_APP_ID,
         githubAppPrivateKey: parsed.GITHUB_APP_PRIVATE_KEY,
         appBaseUrl: parsed.APP_BASE_URL,
+        stripeSecretKey: parsed.STRIPE_SECRET_KEY,
+        stripeWebhookSecret: parsed.STRIPE_WEBHOOK_SECRET,
+        stripePriceStarter: parsed.STRIPE_PRICE_STARTER,
+        stripePricePro: parsed.STRIPE_PRICE_PRO,
+        stripePriceAgency: parsed.STRIPE_PRICE_AGENCY,
         hmacSecret: parsed.HMAC_SECRET,
+        credentialEncryptionSecret: parsed.CREDENTIAL_ENCRYPTION_SECRET ?? parsed.HMAC_SECRET,
+        maxRequestBytes: parsed.MAX_REQUEST_BYTES,
+        webhookRateLimitPerMinute: parsed.WEBHOOK_RATE_LIMIT_PER_MINUTE,
         localFixtureMode: parsed.LOCAL_FIXTURE_MODE,
         missingForProduction
     };

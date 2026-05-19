@@ -3,6 +3,7 @@ import { ensureTelegramWorkspace, snapshotForTelegramChat } from '../../onboardi
 import { listLocalIncidents } from './store.js';
 import { runManualRepoScan } from '../../jobs/repoScan.js';
 import { isRepoScanEnabled, routeSettingsCommand } from './settings.js';
+import { repositoryLimitForPlan } from '../../settings/planLimits.js';
 export function routeTelegramCommand(message, config) {
     const parts = (message.text ?? '').trim().split(/\s+/).filter(Boolean);
     const command = parts[0]?.split('@')[0]?.toLowerCase() || '/status';
@@ -19,7 +20,9 @@ export function routeTelegramCommand(message, config) {
             const openIncidents = listLocalIncidents().filter((record) => record.status === 'open').length;
             const repoWord = snapshot.repositories.length === 1 ? 'repo' : 'repos';
             const installState = snapshot.installation ? `GitHub installation ${snapshot.installation.githubInstallationId.toString()} connected.` : 'GitHub App not connected yet.';
-            return `Key Leak Guard local mode is online. Connected repos: ${snapshot.repositories.length} ${repoWord}. Open incidents: ${openIncidents}. ${installState}`;
+            const limit = repositoryLimitForPlan(snapshot.account.plan);
+            const billingHint = snapshot.repositories.length >= limit ? ` Plan ${snapshot.account.plan} repo limit is ${limit}; upgrade in billing to add more.` : ` Plan: ${snapshot.account.plan} (${snapshot.repositories.length}/${limit} repos used).`;
+            return `Key Leak Guard local mode is online. Connected repos: ${snapshot.repositories.length} ${repoWord}. Open incidents: ${openIncidents}. ${installState}${billingHint}`;
         }
         case '/incidents': {
             const open = listLocalIncidents().filter((record) => record.status !== 'resolved' && record.status !== 'false_positive' && !record.suppressed);

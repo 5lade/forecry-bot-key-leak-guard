@@ -52,10 +52,11 @@ test('telegram onboarding creates workspace and fixture GitHub callback syncs re
     assert.match(start.json().text, /Setup link/);
     const callback = await app.inject({ method: 'GET', url: '/oauth/github/callback?workspace_id=wksp_tg_123&installation_id=777&repositories=demo/app,demo/api' });
     assert.equal(callback.statusCode, 200);
-    assert.equal(callback.json().connectedRepositories, 2);
+    assert.equal(callback.json().connectedRepositories, 1);
+    assert.match(callback.json().message, /Trial allows 1 repo/);
     const status = await app.inject({ method: 'POST', url: '/webhooks/telegram', headers: { 'content-type': 'application/json' }, payload: JSON.stringify({ update_id: 11, message: { text: '/status', chat: { id: 123 }, from: { id: 456 } } }) });
     assert.equal(status.statusCode, 200);
-    assert.match(status.json().text, /Connected repos: 2 repos/);
+    assert.match(status.json().text, /Connected repos: 1 repo/);
     assert.match(status.json().text, /Open incidents: 0/);
     await app.close();
 });

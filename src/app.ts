@@ -8,6 +8,7 @@ import { registerTelegramRoutes } from './http/telegram.js';
 import { registerOAuthRoutes } from './http/oauth.js';
 import { registerMetricsRoutes } from './http/metrics.js';
 import { registerAdminRoutes } from './http/admin.js';
+import { registerBillingRoutes } from './http/billing.js';
 
 export async function buildApp(config: AppConfig) {
   const app = Fastify({ loggerInstance: logger, bodyLimit: config.maxRequestBytes });
@@ -37,6 +38,7 @@ export async function buildApp(config: AppConfig) {
   registerOAuthRoutes(app, config);
   registerMetricsRoutes(app);
   registerAdminRoutes(app, config);
+  registerBillingRoutes(app, config);
 
   app.setErrorHandler((error: any, request, reply) => {
     request.log.error({ err: error }, 'request failed');

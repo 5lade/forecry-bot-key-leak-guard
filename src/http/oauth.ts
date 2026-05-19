@@ -32,7 +32,8 @@ export function registerOAuthRoutes(app: any, config: AppConfig) {
       installationId,
       connectedRepositories: snapshot.repositories.length,
       repositories: snapshot.repositories.map((repo) => repo.fullName),
-      message: `Connected ${snapshot.repositories.length} GitHub repos. Return to Telegram and send /status.`
+      message: snapshot.planGate?.message ?? `Connected ${snapshot.repositories.length} GitHub repos. Return to Telegram and send /status.`,
+      planGate: snapshot.planGate
     });
   }
 }

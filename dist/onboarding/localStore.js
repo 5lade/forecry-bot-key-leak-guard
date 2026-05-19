@@ -1,3 +1,4 @@
+import { planLimitCopy, repositoryLimitForPlan } from '../settings/planLimits.js';
 const accounts = new Map();
 const workspaces = new Map();
 const installations = new Map();
@@ -57,7 +58,19 @@ export function recordGitHubInstallation(input) {
         createdAt: existing?.createdAt ?? now,
         updatedAt: now
     });
-    for (const repo of input.repositories ?? []) {
+    const account = accounts.get(workspace.accountId);
+    const existingRepos = [...repositories.values()].filter((repo) => repo.workspaceId === input.workspaceId);
+    const existingNames = new Set(existingRepos.map((repo) => repo.fullName));
+    const incomingRepos = input.repositories ?? [];
+    const allowed = repositoryLimitForPlan(account.plan);
+    let acceptedNewCount = 0;
+    let blocked = 0;
+    for (const repo of incomingRepos) {
+        const isExisting = existingNames.has(repo.fullName);
+        if (!isExisting && existingRepos.length + acceptedNewCount >= allowed) {
+            blocked += 1;
+            continue;
+        }
         const repoId = `repo_${sanitizeId(repo.fullName)}`;
         repositories.set(repoId, {
             id: repoId,
@@ -68,8 +81,48 @@ export function recordGitHubInstallation(input) {
             private: repo.private ?? true,
             scanEnabled: true
         });
+        if (!isExisting)
+            acceptedNewCount += 1;
     }
-    return snapshotForWorkspace(input.workspaceId);
+    const snapshot = snapshotForWorkspace(input.workspaceId);
+    if (blocked)
+        snapshot.planGate = { allowed, attempted: existingRepos.length + incomingRepos.length, blocked, message: planLimitCopy({ plan: account.plan, attempted: existingRepos.length + incomingRepos.length, allowed, blocked }) };
+    return snapshot;
+}
+export function updateWorkspacePlan(workspaceId, plan) {
+    const workspace = workspaces.get(workspaceId);
+    if (!workspace)
+        throw new Error(`workspace_not_found:${workspaceId}`);
+    const account = accounts.get(workspace.accountId);
+    if (!account)
+        throw new Error(`account_not_found:${workspace.accountId}`);
+    accounts.set(account.id, { ...account, plan });
+    return snapshotForWorkspace(workspaceId);
+}
+export function purgeWorkspace(workspaceId) {
+    const workspace = workspaces.get(workspaceId);
+    if (!workspace)
+        return { workspaceDeleted: false, repositoriesDeleted: 0, installationsDeleted: 0, accountDeleted: false };
+    let repositoriesDeleted = 0;
+    for (const [id, repo] of repositories) {
+        if (repo.workspaceId === workspaceId) {
+            repositories.delete(id);
+            repositoriesDeleted += 1;
+        }
+    }
+    let installationsDeleted = 0;
+    for (const [id, installation] of installations) {
+        if (installation.workspaceId === workspaceId) {
+            installations.delete(id);
+            installationsDeleted += 1;
+        }
+    }
+    workspaces.delete(workspaceId);
+    const accountHasWorkspaces = [...workspaces.values()].some((item) => item.accountId === workspace.accountId);
+    const accountDeleted = !accountHasWorkspaces;
+    if (accountDeleted)
+        accounts.delete(workspace.accountId);
+    return { workspaceDeleted: true, repositoriesDeleted, installationsDeleted, accountDeleted };
 }
 export function resetOnboardingStore() {
     accounts.clear();
