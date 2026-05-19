@@ -356,7 +356,7 @@ acceptance: |
   Sweep runs in fixture mode, respects configured rate limit, records unavailable/rate-limited state without crashing, and creates exposure incidents only for high-confidence matches.
 ```
 
-- [ ] key-leak-p3-003-agency-workspaces
+- [x] key-leak-p3-003-agency-workspaces
 ```yaml
 id: key-leak-p3-003-agency-workspaces
 tier: P3
