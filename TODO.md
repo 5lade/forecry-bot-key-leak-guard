@@ -172,7 +172,7 @@ acceptance: |
   Every supported provider returns a checklist with revoke/rotate, audit usage, update deploy secrets, redeploy, and verify no new usage steps. Telegram renderer displays checklists concisely with no markdown breakage.
 ```
 
-- [ ] key-leak-p1-004-spend-fixtures-and-correlation
+- [x] key-leak-p1-004-spend-fixtures-and-correlation
 ```yaml
 id: key-leak-p1-004-spend-fixtures-and-correlation
 tier: P1
