@@ -4,6 +4,7 @@ import type { AppConfig } from './config.js';
 import { logger } from './logger.js';
 import { registerHealthRoutes } from './http/health.js';
 import { registerGitHubRoutes } from './http/github.js';
+import { registerTelegramRoutes } from './http/telegram.js';
 
 export async function buildApp(config: AppConfig) {
   const app = Fastify({ loggerInstance: logger });
@@ -26,6 +27,7 @@ export async function buildApp(config: AppConfig) {
 
   registerHealthRoutes(app, config);
   registerGitHubRoutes(app, config);
+  registerTelegramRoutes(app, config);
 
   app.setErrorHandler((error, request, reply) => {
     request.log.error({ err: error }, 'request failed');
