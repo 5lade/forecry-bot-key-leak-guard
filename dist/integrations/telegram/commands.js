@@ -1,11 +1,23 @@
+import { githubCredentialStatus, githubSetupUrl } from '../github/app.js';
+import { ensureTelegramWorkspace, snapshotForTelegramChat } from '../../onboarding/localStore.js';
 import { listLocalIncidents } from './store.js';
-export function routeTelegramCommand(message) {
+export function routeTelegramCommand(message, config) {
     const command = (message.text ?? '').trim().split(/\s+/)[0]?.split('@')[0]?.toLowerCase() || '/status';
     switch (command) {
-        case '/start':
-            return 'Key Leak Guard is ready. Connect a GitHub repo, then I will alert you here when a secret is pushed.';
-        case '/status':
-            return `Key Leak Guard local mode is online. Open incidents: ${listLocalIncidents().filter((record) => record.status === 'open').length}.`;
+        case '/start': {
+            const snapshot = ensureTelegramWorkspace({ chatId: message.chat.id, userId: message.from?.id, username: message.from?.username, firstName: message.from?.first_name });
+            const setupUrl = config ? githubSetupUrl(config, snapshot.workspace.id) : `http://localhost:3000/github/install?workspace_id=${snapshot.workspace.id}`;
+            const credentialStatus = config ? githubCredentialStatus(config) : { ok: true, missing: [] };
+            const setupHint = credentialStatus.ok ? `Setup link: ${setupUrl}` : `${credentialStatus.message} Setup link: ${setupUrl}`;
+            return `Welcome to Key Leak Guard. I created workspace ${snapshot.workspace.id}. ${setupHint} After installing the GitHub App, send /status to confirm connected repos and open incidents.`;
+        }
+        case '/status': {
+            const snapshot = snapshotForTelegramChat(message.chat.id) ?? ensureTelegramWorkspace({ chatId: message.chat.id, userId: message.from?.id, username: message.from?.username, firstName: message.from?.first_name });
+            const openIncidents = listLocalIncidents().filter((record) => record.status === 'open').length;
+            const repoWord = snapshot.repositories.length === 1 ? 'repo' : 'repos';
+            const installState = snapshot.installation ? `GitHub installation ${snapshot.installation.githubInstallationId.toString()} connected.` : 'GitHub App not connected yet.';
+            return `Key Leak Guard local mode is online. Connected repos: ${snapshot.repositories.length} ${repoWord}. Open incidents: ${openIncidents}. ${installState}`;
+        }
         case '/incidents': {
             const open = listLocalIncidents().filter((record) => record.status !== 'resolved' && record.status !== 'false_positive');
             if (!open.length)

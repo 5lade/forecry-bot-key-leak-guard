@@ -4,6 +4,7 @@ import { logger } from './logger.js';
 import { registerHealthRoutes } from './http/health.js';
 import { registerGitHubRoutes } from './http/github.js';
 import { registerTelegramRoutes } from './http/telegram.js';
+import { registerOAuthRoutes } from './http/oauth.js';
 export async function buildApp(config) {
     const app = Fastify({ loggerInstance: logger });
     app.removeContentTypeParser('application/json');
@@ -25,6 +26,7 @@ export async function buildApp(config) {
     registerHealthRoutes(app, config);
     registerGitHubRoutes(app, config);
     registerTelegramRoutes(app, config);
+    registerOAuthRoutes(app, config);
     app.setErrorHandler((error, request, reply) => {
         request.log.error({ err: error }, 'request failed');
         reply.code(500).send({ ok: false, error: 'internal_error' });
