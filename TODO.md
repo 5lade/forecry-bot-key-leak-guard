@@ -28,7 +28,7 @@ acceptance: |
   `npm ci`, `npm run build`, and `npm test` (or documented smoke equivalent) succeed. `node dist/index.js` starts an HTTP server, /health returns ok JSON, /ready returns ok JSON without external credentials in local mode, and Docker build succeeds.
 ```
 
-- [ ] key-leak-p0-002-data-model
+- [x] key-leak-p0-002-data-model
 ```yaml
 id: key-leak-p0-002-data-model
 tier: P0
