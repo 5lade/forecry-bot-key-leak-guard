@@ -7,6 +7,7 @@ import { registerGitHubRoutes } from './http/github.js';
 import { registerTelegramRoutes } from './http/telegram.js';
 import { registerOAuthRoutes } from './http/oauth.js';
 import { registerMetricsRoutes } from './http/metrics.js';
+import { registerAdminRoutes } from './http/admin.js';
 
 export async function buildApp(config: AppConfig) {
   const app = Fastify({ loggerInstance: logger });
@@ -32,6 +33,7 @@ export async function buildApp(config: AppConfig) {
   registerTelegramRoutes(app, config);
   registerOAuthRoutes(app, config);
   registerMetricsRoutes(app);
+  registerAdminRoutes(app, config);
 
   app.setErrorHandler((error, request, reply) => {
     request.log.error({ err: error }, 'request failed');
