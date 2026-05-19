@@ -90,7 +90,7 @@ acceptance: |
   Simulated push with a leaked key creates one critical incident payload in <=30 seconds. Payload includes provider, repo, file path, line, confidence, severity, rotation checklist, and redacted context. Invalid signatures are rejected outside fixture mode.
 ```
 
-- [ ] key-leak-p0-005-telegram-foundation
+- [x] key-leak-p0-005-telegram-foundation
 ```yaml
 id: key-leak-p0-005-telegram-foundation
 tier: P0
