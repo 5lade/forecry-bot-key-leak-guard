@@ -8,7 +8,7 @@
     "build": "tsc -p tsconfig.json",
     "start": "node dist/index.js",
     "dev": "tsx src/index.ts",
-    "test": "npm run build && node --test dist/**/*.test.js",
+    "test": "npm run build && node --test \"dist/**/*.test.js\"",
     "smoke": "npm run build && node dist/smoke.test.js",
     "db:generate": "DATABASE_URL=${DATABASE_URL:-postgresql://key_leak_guard:key_leak_guard@localhost:5432/key_leak_guard} prisma generate",
     "db:validate": "DATABASE_URL=${DATABASE_URL:-postgresql://key_leak_guard:key_leak_guard@localhost:5432/key_leak_guard} prisma validate",

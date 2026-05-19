@@ -1,0 +1,31 @@
+{
+  "ref": "refs/heads/main",
+  "before": "1111111111111111111111111111111111111111",
+  "after": "2222222222222222222222222222222222222222",
+  "repository": {
+    "id": 424242,
+    "full_name": "demo/key-leak-guard-fixture",
+    "default_branch": "main",
+    "private": true,
+    "html_url": "https://github.com/demo/key-leak-guard-fixture"
+  },
+  "pusher": { "name": "demo-founder", "email": "founder@example.com" },
+  "sender": { "login": "demo-founder" },
+  "commits": [
+    {
+      "id": "2222222222222222222222222222222222222222",
+      "message": "accidentally commit local env",
+      "url": "https://github.com/demo/key-leak-guard-fixture/commit/2222222222222222222222222222222222222222",
+      "added": ["src/config.ts"],
+      "modified": [],
+      "removed": [],
+      "files": [
+        {
+          "filename": "src/config.ts",
+          "content": "// production config accidentally committed\nexport const OPENAI_API_KEY = 'sk-proj-KeyLeakWebhookFixtureSecret1234567890ABCDE';\nexport const REGION = 'us-east-1';\n"
+        }
+      ]
+    }
+  ],
+  "head_commit": null
+}

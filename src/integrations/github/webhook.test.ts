@@ -1,0 +1,48 @@
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { test } from 'node:test';
+import { buildApp } from '../../app.js';
+import { loadConfig } from '../../config.js';
+import { ingestPushPayload, signGitHubBody, verifyGitHubSignature } from './webhook.js';
+import type { GitHubPushPayload } from './types.js';
+
+const fixtureRaw = readFileSync(new URL('../../../test/fixtures/github-push-leak.json', import.meta.url), 'utf8');
+const fixture = JSON.parse(fixtureRaw) as GitHubPushPayload;
+const rawSecret = 'sk-proj-KeyLeakWebhookFixtureSecret1234567890ABCDE';
+
+test('push ingestion creates one critical incident without raw secret leakage', () => {
+  const result = ingestPushPayload(fixture, { hmacSecret: 'github-webhook-test-hmac-secret' });
+  assert.equal(result.incidents.length, 1);
+  const [incident] = result.incidents;
+  assert.equal(incident.provider, 'openai');
+  assert.equal(incident.repo, 'demo/key-leak-guard-fixture');
+  assert.equal(incident.filePath, 'src/config.ts');
+  assert.equal(incident.line, 2);
+  assert.equal(incident.severity, 'critical');
+  assert.ok(incident.confidence >= 0.9);
+  assert.ok(incident.rotationChecklist.length >= 4);
+  assert.match(incident.telegramAlert.text, /OPENAI|openai/i);
+  assert.doesNotMatch(JSON.stringify(result), new RegExp(rawSecret));
+});
+
+test('github webhook verifies valid signatures and rejects invalid signatures', async () => {
+  const secret = 'github-webhook-secret-for-tests';
+  assert.equal(verifyGitHubSignature(fixtureRaw, signGitHubBody(fixtureRaw, secret), secret), true);
+  assert.equal(verifyGitHubSignature(fixtureRaw, 'sha256=' + '0'.repeat(64), secret), false);
+
+  const app = await buildApp(loadConfig({ NODE_ENV: 'test', LOCAL_FIXTURE_MODE: 'false', GITHUB_WEBHOOK_SECRET: secret, HMAC_SECRET: 'github-webhook-test-hmac-secret' }));
+  const bad = await app.inject({ method: 'POST', url: '/webhooks/github', headers: { 'content-type': 'application/json', 'x-github-event': 'push', 'x-hub-signature-256': 'sha256=' + '0'.repeat(64) }, payload: fixtureRaw });
+  assert.equal(bad.statusCode, 401);
+  const good = await app.inject({ method: 'POST', url: '/webhooks/github', headers: { 'content-type': 'application/json', 'x-github-event': 'push', 'x-hub-signature-256': signGitHubBody(fixtureRaw, secret) }, payload: fixtureRaw });
+  assert.equal(good.statusCode, 200);
+  assert.equal(good.json().incidents.length, 1);
+  await app.close();
+});
+
+test('fixture mode accepts unsigned local payloads', async () => {
+  const app = await buildApp(loadConfig({ NODE_ENV: 'test', LOCAL_FIXTURE_MODE: 'true', HMAC_SECRET: 'github-webhook-test-hmac-secret' }));
+  const response = await app.inject({ method: 'POST', url: '/webhooks/github', headers: { 'content-type': 'application/json', 'x-github-event': 'push', 'x-key-leak-fixture': 'true' }, payload: fixtureRaw });
+  assert.equal(response.statusCode, 200);
+  assert.equal(response.json().incidents.length, 1);
+  await app.close();
+});
