@@ -133,7 +133,7 @@ acceptance: |
   Local fixture flow creates account, workspace, installation, and repositories. /status shows connected repo count and open incident count. Missing credentials produce actionable setup errors, not crashes.
 ```
 
-- [ ] key-leak-p1-002-incident-lifecycle
+- [x] key-leak-p1-002-incident-lifecycle
 ```yaml
 id: key-leak-p1-002-incident-lifecycle
 tier: P1
