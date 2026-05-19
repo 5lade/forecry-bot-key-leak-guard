@@ -1,4 +1,5 @@
 import type { GitHubIncidentPayload } from '../integrations/github/types.js';
+import { renderRotationChecklist } from './rotation.js';
 
 const RAW_SECRET_PATTERNS = [
   /sk-(?:proj-)?[A-Za-z0-9_-]{16,}/g,
@@ -38,13 +39,6 @@ export function renderCriticalLeakAlert(incident: GitHubIncidentPayload): Render
   ];
   if (incident.commitUrl) keyboard.push([{ text: 'Open GitHub commit', url: incident.commitUrl }]);
   return { text, parse_mode: 'Markdown', reply_markup: { inline_keyboard: keyboard } };
-}
-
-export function renderRotationChecklist(incident: Pick<GitHubIncidentPayload, 'provider' | 'rotationChecklist'>): string {
-  return sanitizeTelegramText([
-    `*Rotation checklist for ${incident.provider}*`,
-    ...incident.rotationChecklist.map((item, index) => `${index + 1}. ${item}`)
-  ].join('\n'));
 }
 
 export function sanitizeTelegramText(text: string): string {

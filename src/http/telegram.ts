@@ -1,5 +1,6 @@
 import type { AppConfig } from '../config.js';
-import { renderCriticalLeakAlert, renderRotationChecklist } from '../renderers/alerts.js';
+import { renderCriticalLeakAlert } from '../renderers/alerts.js';
+import { renderRotationChecklist } from '../renderers/rotation.js';
 import { routeTelegramCommand, sampleIncidentForTelegram, type TelegramUpdate } from '../integrations/telegram/commands.js';
 import { getLocalIncident, updateLocalIncidentStatus, upsertLocalIncident } from '../integrations/telegram/store.js';
 import type { IncidentStatus } from '../domain/types.js';
