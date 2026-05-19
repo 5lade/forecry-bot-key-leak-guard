@@ -153,7 +153,7 @@ acceptance: |
   Tests prove duplicate fingerprint+repo incidents dedupe, false positives suppress future findings, resolved incidents reopen on later recurrence, and critical unresolved reminders are scheduled at 30-minute intervals for the first 4 hours.
 ```
 
-- [ ] key-leak-p1-003-provider-rotation-runbooks
+- [x] key-leak-p1-003-provider-rotation-runbooks
 ```yaml
 id: key-leak-p1-003-provider-rotation-runbooks
 tier: P1

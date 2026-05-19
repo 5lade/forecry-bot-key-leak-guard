@@ -1,5 +1,6 @@
 import { createHmac, timingSafeEqual } from 'node:crypto';
 import { scanText } from '../../scanner/scanner.js';
+import { rotationChecklistFor } from '../../runbooks/rotation.js';
 const DEFAULT_HMAC_SECRET = 'local-fixture-hmac-secret-32-bytes';
 export function verifyGitHubSignature(rawBody, signatureHeader, secret, fixtureMode = false) {
     if (!secret)
@@ -88,17 +89,6 @@ function toIncident(finding) {
             actions: ['Acknowledge', 'Resolve', 'False positive', 'Open GitHub commit', 'Rotation checklist']
         }
     };
-}
-function rotationChecklistFor(provider) {
-    const common = ['Revoke the exposed credential immediately', 'Create a replacement credential with least privilege', 'Move the new value into a secret manager or CI secret store', 'Audit recent usage for suspicious activity'];
-    const providerSteps = {
-        openai: ['Check OpenAI usage and billing limits', 'Rotate project/service account API keys'],
-        anthropic: ['Review Anthropic workspace API key usage', 'Rotate affected admin/API key'],
-        github: ['Revoke token in GitHub developer settings', 'Review token scopes and recent audit log entries'],
-        stripe: ['Roll the restricted/secret key in Stripe dashboard', 'Review events and balance activity'],
-        slack: ['Reinstall or rotate the Slack app token', 'Review app scopes and workspace audit logs']
-    };
-    return [...(providerSteps[provider] ?? [`Rotate the ${provider} credential in its provider console`]), ...common];
 }
 function hashCode(value) {
     let hash = 0;

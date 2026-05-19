@@ -24,12 +24,6 @@ export function renderCriticalLeakAlert(incident) {
         keyboard.push([{ text: 'Open GitHub commit', url: incident.commitUrl }]);
     return { text, parse_mode: 'Markdown', reply_markup: { inline_keyboard: keyboard } };
 }
-export function renderRotationChecklist(incident) {
-    return sanitizeTelegramText([
-        `*Rotation checklist for ${incident.provider}*`,
-        ...incident.rotationChecklist.map((item, index) => `${index + 1}. ${item}`)
-    ].join('\n'));
-}
 export function sanitizeTelegramText(text) {
     return RAW_SECRET_PATTERNS.reduce((safe, pattern) => safe.replace(pattern, '[redacted]'), text);
 }
