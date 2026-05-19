@@ -192,7 +192,7 @@ acceptance: |
   bin/run-spend-correlation-fixture.sh outputs severity=critical and linked_incident=true for the supplied billing-spike fixture. Non-correlated spend spikes still create spend anomalies without falsely linking to unrelated findings.
 ```
 
-- [ ] key-leak-p1-005-daily-digest
+- [x] key-leak-p1-005-daily-digest
 ```yaml
 id: key-leak-p1-005-daily-digest
 tier: P1
