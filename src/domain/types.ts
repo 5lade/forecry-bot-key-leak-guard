@@ -15,6 +15,7 @@ export interface WorkspaceRecord {
   id: string;
   accountId: string;
   name: string;
+  clientName?: string;
 }
 
 export interface RepositoryRecord {

@@ -31,6 +31,7 @@ const accounts = new Map<string, AccountRecord>();
 const workspaces = new Map<string, WorkspaceRecord>();
 const installations = new Map<string, InstallationRecord>();
 const repositories = new Map<string, RepositoryRecord>();
+const activeWorkspaceByTelegramChat = new Map<string, string>();
 
 export interface TelegramIdentity {
   chatId: number | string;
@@ -58,7 +59,9 @@ export function ensureTelegramWorkspace(identity: TelegramIdentity): OnboardingS
     name: identity.username ? `${identity.username}'s workspace` : 'Telegram workspace'
   };
   workspaces.set(workspace.id, workspace);
-  return snapshotForWorkspace(workspace.id)!;
+  const chatKey = telegramChatKey(identity.chatId);
+  if (!activeWorkspaceByTelegramChat.has(chatKey)) activeWorkspaceByTelegramChat.set(chatKey, workspace.id);
+  return snapshotForWorkspace(activeWorkspaceByTelegramChat.get(chatKey) ?? workspace.id) ?? snapshotForWorkspace(workspace.id)!;
 }
 
 export function getWorkspace(workspaceId: string): WorkspaceRecord | undefined {
@@ -76,7 +79,25 @@ export function snapshotForWorkspace(workspaceId: string): OnboardingSnapshot | 
 }
 
 export function snapshotForTelegramChat(chatId: number | string): OnboardingSnapshot | undefined {
+  const activeId = activeWorkspaceByTelegramChat.get(telegramChatKey(chatId));
+  if (activeId) return snapshotForWorkspace(activeId);
   return snapshotForWorkspace(`wksp_tg_${BigInt(Number(chatId)).toString()}`);
+}
+
+export function setActiveWorkspaceForTelegramChat(chatId: number | string, workspace: WorkspaceRecord): OnboardingSnapshot {
+  workspaces.set(workspace.id, workspace);
+  activeWorkspaceByTelegramChat.set(telegramChatKey(chatId), workspace.id);
+  const snapshot = snapshotForWorkspace(workspace.id);
+  if (!snapshot) throw new Error(`workspace_not_found:${workspace.id}`);
+  return snapshot;
+}
+
+export function listSnapshotsForAccount(accountId: string): OnboardingSnapshot[] {
+  return [...workspaces.values()]
+    .filter((workspace) => workspace.accountId === accountId)
+    .sort((a, b) => a.name.localeCompare(b.name))
+    .map((workspace) => snapshotForWorkspace(workspace.id))
+    .filter((snapshot): snapshot is OnboardingSnapshot => Boolean(snapshot));
 }
 
 export function recordGitHubInstallation(input: {
@@ -159,6 +180,9 @@ export function purgeWorkspace(workspaceId: string): { workspaceDeleted: boolean
     }
   }
   workspaces.delete(workspaceId);
+  for (const [chatKey, activeId] of activeWorkspaceByTelegramChat) {
+    if (activeId === workspaceId) activeWorkspaceByTelegramChat.delete(chatKey);
+  }
   const accountHasWorkspaces = [...workspaces.values()].some((item) => item.accountId === workspace.accountId);
   const accountDeleted = !accountHasWorkspaces;
   if (accountDeleted) accounts.delete(workspace.accountId);
@@ -170,6 +194,11 @@ export function resetOnboardingStore() {
   workspaces.clear();
   installations.clear();
   repositories.clear();
+  activeWorkspaceByTelegramChat.clear();
+}
+
+function telegramChatKey(chatId: number | string): string {
+  return BigInt(Number(chatId)).toString();
 }
 
 function sanitizeId(value: string): string {

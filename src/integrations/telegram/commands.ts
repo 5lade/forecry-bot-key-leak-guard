@@ -6,6 +6,7 @@ import { listLocalIncidents } from './store.js';
 import { runManualRepoScan } from '../../jobs/repoScan.js';
 import { isRepoScanEnabled, routeSettingsCommand } from './settings.js';
 import { repositoryLimitForPlan } from '../../settings/planLimits.js';
+import { assignRepositoryToClient, createClientWorkspace, listClientWorkspaces, renderClientDigestSections, renderRepositoryGroups, selectClientWorkspace } from '../../workspaces/agency.js';
 
 export interface TelegramMessage {
   message_id?: number;
@@ -42,10 +43,12 @@ export function routeTelegramCommand(message: TelegramMessage, config?: AppConfi
       const snapshot = snapshotForTelegramChat(message.chat.id) ?? ensureTelegramWorkspace({ chatId: message.chat.id, userId: message.from?.id, username: message.from?.username, firstName: message.from?.first_name });
       const openIncidents = listLocalIncidents().filter((record) => record.status === 'open').length;
       const repoWord = snapshot.repositories.length === 1 ? 'repo' : 'repos';
+      const repoGroups = renderRepositoryGroups(snapshot.repositories);
       const installState = snapshot.installation ? `GitHub installation ${snapshot.installation.githubInstallationId.toString()} connected.` : 'GitHub App not connected yet.';
       const limit = repositoryLimitForPlan(snapshot.account.plan);
       const billingHint = snapshot.repositories.length >= limit ? ` Plan ${snapshot.account.plan} repo limit is ${limit}; upgrade in billing to add more.` : ` Plan: ${snapshot.account.plan} (${snapshot.repositories.length}/${limit} repos used).`;
-      return `Key Leak Guard local mode is online. Connected repos: ${snapshot.repositories.length} ${repoWord}. Open incidents: ${openIncidents}. ${installState}${billingHint}`;
+      return `Key Leak Guard local mode is online. Active workspace: ${snapshot.workspace.name}. Connected repos: ${snapshot.repositories.length} ${repoWord}. Open incidents: ${openIncidents}. ${installState}${billingHint}
+${repoGroups}`;
     }
     case '/incidents': {
       const open = listLocalIncidents().filter((record) => record.status !== 'resolved' && record.status !== 'false_positive' && !record.suppressed);
@@ -66,14 +69,27 @@ export function routeTelegramCommand(message: TelegramMessage, config?: AppConfi
     }
     case '/digest': {
       const snapshot = snapshotForTelegramChat(message.chat.id) ?? ensureTelegramWorkspace({ chatId: message.chat.id, userId: message.from?.id, username: message.from?.username, firstName: message.from?.first_name });
-      return `${routeSettingsCommand({ workspaceId: snapshot.workspace.id, args: ['show'] }).split('\n').slice(1, 4).join('\n')}\nDigest stub: ${listLocalIncidents().length} total incident(s) tracked locally.`;
+      return `${routeSettingsCommand({ workspaceId: snapshot.workspace.id, args: ['show'] }).split('\n').slice(1, 4).join('\n')}\nDigest stub: ${listLocalIncidents().length} total incident(s) tracked locally.\n${renderClientDigestSections(snapshot, listLocalIncidents())}`;
+    }
+    case '/workspace':
+    case '/workspaces': {
+      const identity = { chatId: message.chat.id, userId: message.from?.id, username: message.from?.username, firstName: message.from?.first_name };
+      const subcommand = (parts[1] ?? 'list').toLowerCase();
+      if (subcommand === 'create') return createClientWorkspace(identity, parts.slice(2).join(' ')).text;
+      if (subcommand === 'list') return listClientWorkspaces(identity).text;
+      if (subcommand === 'select') return selectClientWorkspace(identity, parts.slice(2).join(' ')).text;
+      if (subcommand === 'assign') {
+        const snapshot = snapshotForTelegramChat(message.chat.id) ?? ensureTelegramWorkspace(identity);
+        return assignRepositoryToClient(snapshot, parts[2] ?? '', parts.slice(3).join(' ')).text;
+      }
+      return 'Workspace commands: /workspace list, /workspace create <client>, /workspace select <workspace id|name>, /workspace assign <owner/repo> <client>.';
     }
     case '/settings': {
       const snapshot = snapshotForTelegramChat(message.chat.id) ?? ensureTelegramWorkspace({ chatId: message.chat.id, userId: message.from?.id, username: message.from?.username, firstName: message.from?.first_name });
       return routeSettingsCommand({ workspaceId: snapshot.workspace.id, args: parts.slice(1) });
     }
     default:
-      return 'Unknown command. Try /status, /incidents, /scan, /digest, or /settings.';
+      return 'Unknown command. Try /status, /incidents, /scan, /digest, /workspace, or /settings.';
   }
 }
 
