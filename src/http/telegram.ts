@@ -20,7 +20,7 @@ export function registerTelegramRoutes(app: any, config: AppConfig) {
 
     const update = parsedBodyFrom(request.body) as TelegramUpdate;
     if (update.callback_query) return handleCallback(update.callback_query.data, reply);
-    if (update.message?.text) return reply.code(200).send({ ok: true, method: 'sendMessage', chat_id: update.message.chat.id, text: routeTelegramCommand(update.message) });
+    if (update.message?.text) return reply.code(200).send({ ok: true, method: 'sendMessage', chat_id: update.message.chat.id, text: routeTelegramCommand(update.message, config) });
     return reply.code(200).send({ ok: true, ignored: true });
   });
 
