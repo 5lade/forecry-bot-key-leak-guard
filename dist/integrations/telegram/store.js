@@ -1,26 +1,19 @@
-const incidents = new Map();
-export function upsertLocalIncident(incident) {
-    const existing = incidents.get(incident.id);
-    const record = existing ?? { incident, status: 'open', updatedAt: new Date().toISOString(), history: [] };
-    record.incident = incident;
-    incidents.set(incident.id, record);
-    return record;
+import { createLifecycleState, transitionIncident, upsertIncident } from '../../incidents/lifecycle.js';
+const state = createLifecycleState();
+export function upsertLocalIncident(incident, now = new Date()) {
+    return upsertIncident(state, incident, now);
 }
 export function listLocalIncidents() {
-    return [...incidents.values()].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+    return [...state.incidentsById.values()].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
 }
 export function getLocalIncident(id) {
-    return incidents.get(id);
+    return state.incidentsById.get(id);
 }
-export function updateLocalIncidentStatus(id, status, action = status) {
-    const record = incidents.get(id);
-    if (!record)
-        return undefined;
-    record.status = status;
-    record.updatedAt = new Date().toISOString();
-    record.history.push({ action, at: record.updatedAt });
-    return record;
+export function updateLocalIncidentStatus(id, status, action = status, now = new Date()) {
+    return transitionIncident(state, id, status, action, now);
 }
 export function resetLocalTelegramStore() {
-    incidents.clear();
+    state.incidentsById.clear();
+    state.incidentKeyToId.clear();
+    state.suppressionsByKey.clear();
 }

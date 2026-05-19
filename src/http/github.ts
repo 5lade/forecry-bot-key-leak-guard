@@ -1,6 +1,7 @@
 import type { AppConfig } from '../config.js';
 import { ingestPushPayload, verifyGitHubSignature } from '../integrations/github/webhook.js';
 import type { GitHubPushPayload } from '../integrations/github/types.js';
+import { upsertLocalIncident } from '../integrations/telegram/store.js';
 
 export function registerGitHubRoutes(app: any, config: AppConfig) {
   app.post('/webhooks/github', async (request: any, reply: any) => {
@@ -18,7 +19,8 @@ export function registerGitHubRoutes(app: any, config: AppConfig) {
     }
 
     const result = ingestPushPayload(payload, { hmacSecret: config.hmacSecret });
-    return reply.code(200).send(result);
+    const incidentRecords = result.incidents.map((incident) => upsertLocalIncident(incident));
+    return reply.code(200).send({ ...result, incidentRecords: incidentRecords.map((record) => ({ id: record.incident.id, status: record.status, occurrenceCount: record.occurrenceCount, suppressed: record.suppressed ?? false })) });
   });
 }
 

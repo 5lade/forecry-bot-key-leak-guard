@@ -19,7 +19,7 @@ export function routeTelegramCommand(message, config) {
             return `Key Leak Guard local mode is online. Connected repos: ${snapshot.repositories.length} ${repoWord}. Open incidents: ${openIncidents}. ${installState}`;
         }
         case '/incidents': {
-            const open = listLocalIncidents().filter((record) => record.status !== 'resolved' && record.status !== 'false_positive');
+            const open = listLocalIncidents().filter((record) => record.status !== 'resolved' && record.status !== 'false_positive' && !record.suppressed);
             if (!open.length)
                 return 'No active incidents in local persistence.';
             return open.map((record) => `${record.incident.id}: ${record.incident.severity} ${record.incident.provider} in ${record.incident.repo}:${record.incident.filePath}:${record.incident.line} (${record.status})`).join('\n');

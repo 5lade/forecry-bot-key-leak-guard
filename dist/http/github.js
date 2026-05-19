@@ -1,4 +1,5 @@
 import { ingestPushPayload, verifyGitHubSignature } from '../integrations/github/webhook.js';
+import { upsertLocalIncident } from '../integrations/telegram/store.js';
 export function registerGitHubRoutes(app, config) {
     app.post('/webhooks/github', async (request, reply) => {
         const event = request.headers['x-github-event'];
@@ -13,7 +14,8 @@ export function registerGitHubRoutes(app, config) {
             return reply.code(401).send({ ok: false, error: 'invalid_github_signature' });
         }
         const result = ingestPushPayload(payload, { hmacSecret: config.hmacSecret });
-        return reply.code(200).send(result);
+        const incidentRecords = result.incidents.map((incident) => upsertLocalIncident(incident));
+        return reply.code(200).send({ ...result, incidentRecords: incidentRecords.map((record) => ({ id: record.incident.id, status: record.status, occurrenceCount: record.occurrenceCount, suppressed: record.suppressed ?? false })) });
     });
 }
 function rawBodyFrom(body) {
