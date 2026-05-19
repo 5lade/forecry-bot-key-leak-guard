@@ -273,7 +273,7 @@ acceptance: |
   Settings persist per workspace, affect alert/digest behavior, and invalid values return helpful Telegram messages.
 ```
 
-- [ ] key-leak-p2-003-security-hardening
+- [x] key-leak-p2-003-security-hardening
 ```yaml
 id: key-leak-p2-003-security-hardening
 tier: P2
