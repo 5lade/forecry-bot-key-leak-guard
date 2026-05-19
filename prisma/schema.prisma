@@ -1,0 +1,274 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Plan {
+  trial
+  starter
+  pro
+  agency
+}
+enum InstallationStatus {
+  active
+  suspended
+  deleted
+}
+enum Severity {
+  low
+  medium
+  high
+  critical
+}
+enum FindingStatus {
+  open
+  acknowledged
+  resolved
+  false_positive
+  snoozed
+}
+enum IncidentStatus {
+  open
+  acknowledged
+  resolved
+  false_positive
+  snoozed
+}
+enum SpendAuthType {
+  api_key
+  manual
+  import
+  mock
+}
+enum SpendSourceStatus {
+  active
+  error
+  disabled
+}
+enum JobStatus {
+  pending
+  running
+  completed
+  failed
+}
+
+model Account {
+  id             String      @id @default(uuid()) @db.Uuid
+  telegramUserId BigInt      @unique @map("telegram_user_id")
+  telegramChatId BigInt      @map("telegram_chat_id")
+  displayName    String?     @map("display_name")
+  plan           Plan        @default(trial)
+  trialEndsAt    DateTime?   @map("trial_ends_at") @db.Timestamptz(6)
+  createdAt      DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime    @updatedAt @map("updated_at") @db.Timestamptz(6)
+  workspaces     Workspace[]
+
+  @@map("accounts")
+}
+
+model Workspace {
+  id                  String               @id @default(uuid()) @db.Uuid
+  accountId           String               @map("account_id") @db.Uuid
+  name                String
+  digestTimeUtc       String               @default("09:00") @map("digest_time_utc")
+  alertPolicy         Json                 @default("{}") @map("alert_policy")
+  account             Account              @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  githubInstallations GithubInstallation[]
+  repositories        Repository[]
+  incidents           Incident[]
+  spendSources        SpendSource[]
+  spendAnomalies      SpendAnomaly[]
+  suppressions        Suppression[]
+  jobs                Job[]
+
+  @@index([accountId])
+  @@map("workspaces")
+}
+
+model GithubInstallation {
+  id             String        @id @default(uuid()) @db.Uuid
+  workspaceId    String        @map("workspace_id") @db.Uuid
+  installationId BigInt        @unique @map("installation_id")
+  accountLogin   String        @map("account_login")
+  permissions    Json          @default("{}")
+  status         InstallationStatus @default(active)
+  createdAt      DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime      @updatedAt @map("updated_at") @db.Timestamptz(6)
+  workspace      Workspace     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  repositories   Repository[]
+
+  @@index([workspaceId])
+  @@map("github_installations")
+}
+
+model Repository {
+  id                     String              @id @default(uuid()) @db.Uuid
+  workspaceId            String              @map("workspace_id") @db.Uuid
+  githubInstallationId   String?             @map("github_installation_id") @db.Uuid
+  githubRepoId           BigInt              @unique @map("github_repo_id")
+  fullName               String              @map("full_name")
+  defaultBranch          String              @default("main") @map("default_branch")
+  private                Boolean             @default(true)
+  scanEnabled            Boolean             @default(true) @map("scan_enabled")
+  lastScanAt             DateTime?           @map("last_scan_at") @db.Timestamptz(6)
+  createdAt              DateTime            @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt              DateTime            @updatedAt @map("updated_at") @db.Timestamptz(6)
+  workspace              Workspace           @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  githubInstallation     GithubInstallation? @relation(fields: [githubInstallationId], references: [id], onDelete: SetNull)
+  findings               Finding[]
+
+  @@index([workspaceId])
+  @@index([githubInstallationId])
+  @@map("repositories")
+}
+
+model DetectorRule {
+  id               String    @id
+  provider         String
+  regex            String
+  entropyThreshold Decimal?  @map("entropy_threshold") @db.Decimal(8, 4)
+  severityBase     Severity  @map("severity_base")
+  enabled          Boolean   @default(true)
+  version          String
+  findings         Finding[]
+
+  @@index([provider, enabled])
+  @@map("detector_rules")
+}
+
+model Finding {
+  id             String         @id @default(uuid()) @db.Uuid
+  repositoryId   String         @map("repository_id") @db.Uuid
+  provider       String
+  detectorId     String?        @map("detector_id")
+  fingerprint    String
+  secretHash     String         @map("secret_hash")
+  confidence     Decimal        @db.Decimal(5, 4)
+  severity       Severity
+  filePath       String         @map("file_path")
+  lineNumber     Int            @map("line_number")
+  commitSha      String?        @map("commit_sha")
+  contextExcerpt String         @map("context_excerpt")
+  firstSeenAt    DateTime       @default(now()) @map("first_seen_at") @db.Timestamptz(6)
+  lastSeenAt     DateTime       @default(now()) @map("last_seen_at") @db.Timestamptz(6)
+  status         FindingStatus  @default(open)
+  suppressionId  String?        @map("suppression_id") @db.Uuid
+  repository     Repository     @relation(fields: [repositoryId], references: [id], onDelete: Cascade)
+  detectorRule   DetectorRule?  @relation(fields: [detectorId], references: [id], onDelete: SetNull)
+  suppression    Suppression?   @relation(fields: [suppressionId], references: [id], onDelete: SetNull)
+  incidents      Incident[]
+  spendAnomalies SpendAnomaly[]
+
+  @@index([fingerprint])
+  @@index([repositoryId, status])
+  @@map("findings")
+}
+
+model Incident {
+  id                String          @id @default(uuid()) @db.Uuid
+  workspaceId       String          @map("workspace_id") @db.Uuid
+  findingId         String?         @map("finding_id") @db.Uuid
+  spendAnomalyId    String?         @unique @map("spend_anomaly_id") @db.Uuid
+  title             String
+  severity          Severity
+  status            IncidentStatus  @default(open)
+  provider          String
+  blastRadius       Json            @default("{}") @map("blast_radius")
+  rotationChecklist Json            @default("[]") @map("rotation_checklist")
+  telegramMessageId BigInt?         @map("telegram_message_id")
+  createdAt         DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime        @updatedAt @map("updated_at") @db.Timestamptz(6)
+  resolvedAt        DateTime?       @map("resolved_at") @db.Timestamptz(6)
+  workspace         Workspace       @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  finding           Finding?        @relation(fields: [findingId], references: [id], onDelete: SetNull)
+  spendAnomaly      SpendAnomaly?   @relation(fields: [spendAnomalyId], references: [id], onDelete: SetNull)
+
+  @@index([workspaceId, status])
+  @@index([findingId])
+  @@map("incidents")
+}
+
+model SpendSource {
+  id                   String              @id @default(uuid()) @db.Uuid
+  workspaceId          String              @map("workspace_id") @db.Uuid
+  provider             String
+  authType             SpendAuthType       @map("auth_type")
+  encryptedCredentials Bytes?              @map("encrypted_credentials")
+  status               SpendSourceStatus   @default(active)
+  lastSyncAt           DateTime?           @map("last_sync_at") @db.Timestamptz(6)
+  workspace            Workspace           @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  snapshots            SpendSnapshot[]
+
+  @@index([workspaceId, provider])
+  @@map("spend_sources")
+}
+
+model SpendSnapshot {
+  id            String      @id @default(uuid()) @db.Uuid
+  spendSourceId String      @map("spend_source_id") @db.Uuid
+  provider      String
+  periodStart   DateTime    @map("period_start") @db.Timestamptz(6)
+  periodEnd     DateTime    @map("period_end") @db.Timestamptz(6)
+  amountUsd     Decimal     @map("amount_usd") @db.Decimal(12, 4)
+  usageUnits    Decimal?    @map("usage_units") @db.Decimal(18, 4)
+  raw           Json        @default("{}")
+  spendSource   SpendSource @relation(fields: [spendSourceId], references: [id], onDelete: Cascade)
+
+  @@index([spendSourceId, periodStart])
+  @@map("spend_snapshots")
+}
+
+model SpendAnomaly {
+  id              String      @id @default(uuid()) @db.Uuid
+  workspaceId     String      @map("workspace_id") @db.Uuid
+  provider        String
+  baselineUsd     Decimal     @map("baseline_usd") @db.Decimal(12, 4)
+  observedUsd     Decimal     @map("observed_usd") @db.Decimal(12, 4)
+  multiplier      Decimal     @db.Decimal(10, 4)
+  severity        Severity
+  linkedFindingId String?     @map("linked_finding_id") @db.Uuid
+  createdAt       DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
+  workspace       Workspace   @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  linkedFinding   Finding?    @relation(fields: [linkedFindingId], references: [id], onDelete: SetNull)
+  incident        Incident?
+
+  @@index([workspaceId, createdAt])
+  @@index([linkedFindingId])
+  @@map("spend_anomalies")
+}
+
+model Suppression {
+  id          String    @id @default(uuid()) @db.Uuid
+  workspaceId String    @map("workspace_id") @db.Uuid
+  fingerprint String
+  reason      String
+  createdBy   String    @map("created_by")
+  expiresAt   DateTime? @map("expires_at") @db.Timestamptz(6)
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  findings    Finding[]
+
+  @@unique([workspaceId, fingerprint])
+  @@map("suppressions")
+}
+
+model Job {
+  id          String    @id @default(uuid()) @db.Uuid
+  workspaceId String?   @map("workspace_id") @db.Uuid
+  type        String
+  payload     Json      @default("{}")
+  runAt       DateTime  @map("run_at") @db.Timestamptz(6)
+  attempts    Int       @default(0)
+  status      JobStatus @default(pending)
+  lastError   String?   @map("last_error")
+  lockedAt    DateTime? @map("locked_at") @db.Timestamptz(6)
+  completedAt DateTime? @map("completed_at") @db.Timestamptz(6)
+  workspace   Workspace? @relation(fields: [workspaceId], references: [id], onDelete: SetNull)
+
+  @@index([status, runAt])
+  @@index([workspaceId])
+  @@map("jobs")
+}

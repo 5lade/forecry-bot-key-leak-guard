@@ -9,16 +9,21 @@
     "start": "node dist/index.js",
     "dev": "tsx src/index.ts",
     "test": "npm run build && node --test dist/**/*.test.js",
-    "smoke": "npm run build && node dist/smoke.test.js"
+    "smoke": "npm run build && node dist/smoke.test.js",
+    "db:generate": "DATABASE_URL=${DATABASE_URL:-postgresql://key_leak_guard:key_leak_guard@localhost:5432/key_leak_guard} prisma generate",
+    "db:validate": "DATABASE_URL=${DATABASE_URL:-postgresql://key_leak_guard:key_leak_guard@localhost:5432/key_leak_guard} prisma validate",
+    "db:migrate": "DATABASE_URL=${DATABASE_URL:-postgresql://key_leak_guard:key_leak_guard@localhost:5432/key_leak_guard} prisma migrate dev --name init"
   },
   "dependencies": {
     "@fastify/helmet": "^13.0.2",
+    "@prisma/client": "^6.19.3",
     "fastify": "^5.2.1",
     "pino": "^9.6.0",
     "zod": "^3.24.1"
   },
   "devDependencies": {
     "@types/node": "^22.10.2",
+    "prisma": "^6.19.3",
     "tsx": "^4.19.2",
     "typescript": "^5.7.2"
   },
