@@ -337,7 +337,7 @@ acceptance: |
   Fixture Stripe webhook updates account plan, repo limit checks block excess repos with helpful Telegram copy, and trial-only local mode still works.
 ```
 
-- [ ] key-leak-p3-002-public-code-search-sweep
+- [x] key-leak-p3-002-public-code-search-sweep
 ```yaml
 id: key-leak-p3-002-public-code-search-sweep
 tier: P3
