@@ -1,12 +1,31 @@
 import { createHmac, timingSafeEqual } from 'node:crypto';
 import type { AppConfig } from '../config.js';
-import { snapshotForWorkspace } from '../onboarding/localStore.js';
+import { purgeWorkspace, snapshotForWorkspace } from '../onboarding/localStore.js';
 import { listLocalIncidents } from '../integrations/telegram/store.js';
 import { rotationRunbookFor, SUPPORTED_ROTATION_PROVIDERS } from '../runbooks/rotation.js';
+import { listAuditEvents, recordAuditEvent } from '../security/index.js';
 
 const ADMIN_COOKIE = 'klg_admin_session';
 
 export function registerAdminRoutes(app: any, config: AppConfig) {
+  app.delete('/admin/workspaces/:workspaceId', async (request: any, reply: any) => {
+    const workspaceId = stringParam(request.params?.workspaceId);
+    if (!workspaceId) return reply.code(400).send({ ok: false, error: 'missing_workspace_id' });
+    const token = stringParam(request.query?.token) ?? tokenFromCookie(request.headers?.cookie);
+    if (!isValidAdminToken(config, workspaceId, token)) return reply.code(401).send({ ok: false, error: 'admin_token_required' });
+    const result = purgeWorkspace(workspaceId);
+    recordAuditEvent({ actor: 'admin', action: 'workspace_purged', workspaceId, target: workspaceId, metadata: result });
+    return reply.code(result.workspaceDeleted ? 200 : 404).send({ ok: result.workspaceDeleted, ...result });
+  });
+
+  app.get('/admin/audit', async (request: any, reply: any) => {
+    const workspaceId = stringParam(request.query?.workspace_id);
+    if (!workspaceId) return reply.code(400).send({ ok: false, error: 'missing_workspace_id' });
+    const token = stringParam(request.query?.token) ?? tokenFromCookie(request.headers?.cookie);
+    if (!isValidAdminToken(config, workspaceId, token)) return reply.code(401).send({ ok: false, error: 'admin_token_required' });
+    return reply.send({ ok: true, events: listAuditEvents(workspaceId) });
+  });
+
   app.get('/admin', async (request: any, reply: any) => {
     const workspaceId = stringParam(request.query?.workspace_id);
     if (!workspaceId) return reply.code(400).type('text/html; charset=utf-8').send(page('Missing workspace', '<p>Missing <code>workspace_id</code>.</p>'));
@@ -54,6 +73,7 @@ function renderAdminPage(config: AppConfig, snapshot: NonNullable<ReturnType<typ
     <section><h2>Workspace</h2><p><strong>${escapeHtml(snapshot.workspace.name)}</strong> (${escapeHtml(snapshot.workspace.id)}) · plan ${escapeHtml(snapshot.account.plan)}</p><p><a href="/github/install?workspace_id=${encodeURIComponent(snapshot.workspace.id)}">GitHub setup/status</a> · <a href="/ready">readiness</a> · <a href="/metrics">metrics</a></p></section>
     <section><h2>Repositories</h2><table><thead><tr><th>Repo</th><th>Default branch</th><th>Visibility</th><th>Scanning</th></tr></thead><tbody>${repoRows}</tbody></table></section>
     <section><h2>Incident history</h2><p class="muted">Secret values are never shown here; only provider, repo, path, and status metadata.</p><table><thead><tr><th>ID</th><th>Severity</th><th>Status</th><th>Provider</th><th>Repo</th><th>Location</th><th>Updated</th></tr></thead><tbody>${incidentRows}</tbody></table></section>
+    <section><h2>Data controls</h2><p class="muted">Workspace deletion purges local workspace, installation, repository, credential, and incident metadata. Use signed admin API <code>DELETE /admin/workspaces/${escapeHtml(snapshot.workspace.id)}</code>.</p></section>
     <section><h2>Provider spend sources</h2><table><thead><tr><th>Provider</th><th>Status</th><th>Setup links</th></tr></thead><tbody>${spendRows}</tbody></table></section>
     <section><h2>Billing setup links</h2><ul>${billingLinks}</ul></section>
   `);

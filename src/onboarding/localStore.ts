@@ -108,6 +108,30 @@ export function recordGitHubInstallation(input: {
   return snapshotForWorkspace(input.workspaceId)!;
 }
 
+export function purgeWorkspace(workspaceId: string): { workspaceDeleted: boolean; repositoriesDeleted: number; installationsDeleted: number; accountDeleted: boolean } {
+  const workspace = workspaces.get(workspaceId);
+  if (!workspace) return { workspaceDeleted: false, repositoriesDeleted: 0, installationsDeleted: 0, accountDeleted: false };
+  let repositoriesDeleted = 0;
+  for (const [id, repo] of repositories) {
+    if (repo.workspaceId === workspaceId) {
+      repositories.delete(id);
+      repositoriesDeleted += 1;
+    }
+  }
+  let installationsDeleted = 0;
+  for (const [id, installation] of installations) {
+    if (installation.workspaceId === workspaceId) {
+      installations.delete(id);
+      installationsDeleted += 1;
+    }
+  }
+  workspaces.delete(workspaceId);
+  const accountHasWorkspaces = [...workspaces.values()].some((item) => item.accountId === workspace.accountId);
+  const accountDeleted = !accountHasWorkspaces;
+  if (accountDeleted) accounts.delete(workspace.accountId);
+  return { workspaceDeleted: true, repositoriesDeleted, installationsDeleted, accountDeleted };
+}
+
 export function resetOnboardingStore() {
   accounts.clear();
   workspaces.clear();

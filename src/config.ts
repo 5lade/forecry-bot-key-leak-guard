@@ -13,6 +13,9 @@ const schema = z.object({
   GITHUB_APP_PRIVATE_KEY: z.string().optional(),
   APP_BASE_URL: z.string().url().optional(),
   HMAC_SECRET: z.string().optional(),
+  CREDENTIAL_ENCRYPTION_SECRET: z.string().optional(),
+  MAX_REQUEST_BYTES: z.coerce.number().int().positive().default(1024 * 1024),
+  WEBHOOK_RATE_LIMIT_PER_MINUTE: z.coerce.number().int().positive().default(120),
   LOCAL_FIXTURE_MODE: z.coerce.boolean().default(false)
 });
 
@@ -26,6 +29,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env) {
     if (!parsed.TELEGRAM_BOT_TOKEN) missingForProduction.push('TELEGRAM_BOT_TOKEN');
     if (!parsed.GITHUB_WEBHOOK_SECRET) missingForProduction.push('GITHUB_WEBHOOK_SECRET');
     if (!parsed.HMAC_SECRET) missingForProduction.push('HMAC_SECRET');
+    if (!parsed.CREDENTIAL_ENCRYPTION_SECRET) missingForProduction.push('CREDENTIAL_ENCRYPTION_SECRET');
   }
   return {
     nodeEnv: parsed.NODE_ENV,
@@ -40,6 +44,9 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env) {
     githubAppPrivateKey: parsed.GITHUB_APP_PRIVATE_KEY,
     appBaseUrl: parsed.APP_BASE_URL,
     hmacSecret: parsed.HMAC_SECRET,
+    credentialEncryptionSecret: parsed.CREDENTIAL_ENCRYPTION_SECRET ?? parsed.HMAC_SECRET,
+    maxRequestBytes: parsed.MAX_REQUEST_BYTES,
+    webhookRateLimitPerMinute: parsed.WEBHOOK_RATE_LIMIT_PER_MINUTE,
     localFixtureMode: parsed.LOCAL_FIXTURE_MODE,
     missingForProduction
   };
