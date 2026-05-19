@@ -375,7 +375,7 @@ acceptance: |
   A user can create/select/list workspaces, assign repos to clients, and receive digest sections grouped by client.
 ```
 
-- [ ] key-leak-p3-004-web-admin-minimal
+- [x] key-leak-p3-004-web-admin-minimal
 ```yaml
 id: key-leak-p3-004-web-admin-minimal
 tier: P3
