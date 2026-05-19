@@ -2,12 +2,12 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 npm run build >/dev/null
-node --input-type=module <<'JS'
+FIXTURE_PATH="${1:-test/fixtures/github-push-leak.json}" node --input-type=module <<'JS'
 import { readFileSync } from 'node:fs';
 process.env.LOG_LEVEL = 'silent';
 const { buildApp } = await import('./dist/app.js');
 const { loadConfig } = await import('./dist/config.js');
-const payload = readFileSync(new URL('./test/fixtures/github-push-leak.json', import.meta.url), 'utf8');
+const payload = readFileSync(process.env.FIXTURE_PATH, 'utf8');
 const app = await buildApp(loadConfig({ NODE_ENV: 'test', LOG_LEVEL: 'silent', LOCAL_FIXTURE_MODE: 'true', HMAC_SECRET: process.env.HMAC_SECRET ?? 'fixture-hmac-secret-32-bytes' }));
 const response = await app.inject({ method: 'POST', url: '/webhooks/github', headers: { 'content-type': 'application/json', 'x-github-event': 'push', 'x-key-leak-fixture': 'true' }, payload });
 await app.close();

@@ -7,7 +7,7 @@ interface FixtureFile {
   recentFindings: RecentFinding[];
 }
 
-const fixturePath = resolve(process.cwd(), 'test/fixtures/billing-spike.json');
+const fixturePath = resolve(process.cwd(), process.argv[2] ?? 'test/fixtures/billing-spike.json');
 const fixture = JSON.parse(readFileSync(fixturePath, 'utf8')) as FixtureFile;
 const result = correlateSpendWithFindings({ snapshots: fixture.snapshots, recentFindings: fixture.recentFindings });
 
