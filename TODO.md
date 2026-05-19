@@ -234,7 +234,7 @@ acceptance: |
 
 ## P2 — Polish
 
-- [ ] key-leak-p2-001-observability-and-retries
+- [x] key-leak-p2-001-observability-and-retries
 ```yaml
 id: key-leak-p2-001-observability-and-retries
 tier: P2
