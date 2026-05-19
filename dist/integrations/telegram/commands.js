@@ -2,6 +2,7 @@ import { githubCredentialStatus, githubSetupUrl } from '../github/app.js';
 import { ensureTelegramWorkspace, snapshotForTelegramChat } from '../../onboarding/localStore.js';
 import { listLocalIncidents } from './store.js';
 import { runManualRepoScan } from '../../jobs/repoScan.js';
+import { isRepoScanEnabled, routeSettingsCommand } from './settings.js';
 export function routeTelegramCommand(message, config) {
     const parts = (message.text ?? '').trim().split(/\s+/).filter(Boolean);
     const command = parts[0]?.split('@')[0]?.toLowerCase() || '/status';
@@ -29,7 +30,10 @@ export function routeTelegramCommand(message, config) {
         case '/scan': {
             const target = parts[1] ?? 'all';
             const snapshot = snapshotForTelegramChat(message.chat.id) ?? ensureTelegramWorkspace({ chatId: message.chat.id, userId: message.from?.id, username: message.from?.username, firstName: message.from?.first_name });
-            const result = runManualRepoScan({ target, repositories: snapshot.repositories, hmacSecret: config?.hmacSecret });
+            const enabledRepositories = snapshot.repositories.filter((repo) => isRepoScanEnabled(snapshot.workspace.id, repo.fullName));
+            if (target !== 'all' && snapshot.repositories.some((repo) => repo.fullName === target) && !enabledRepositories.some((repo) => repo.fullName === target))
+                return `Repository ${target} is disabled by alert policy settings. Re-enable it with /settings repo enable ${target}.`;
+            const result = runManualRepoScan({ target, repositories: enabledRepositories, hmacSecret: config?.hmacSecret });
             if (!result.ok)
                 return result.message;
             const severities = result.findingsBySeverity;
@@ -37,10 +41,14 @@ export function routeTelegramCommand(message, config) {
             const repoText = result.results.map((repoResult) => `${repoResult.repo}: ${repoResult.scannedFiles}/${repoResult.checkpoint.totalFiles} files`).join('; ');
             return `Manual scan completed for ${target} in ${result.durationMs}ms. Scanned file count: ${result.scannedFileCount}. Findings by severity: critical=${severities.critical}, high=${severities.high}, medium=${severities.medium}, low=${severities.low}. Incident links: ${incidentText}. Checkpoints: ${repoText}.`;
         }
-        case '/digest':
-            return `Digest stub: ${listLocalIncidents().length} total incident(s) tracked locally.`;
-        case '/settings':
-            return 'Settings stub: alerts are enabled for critical/high leaks; snooze defaults to 24h in local mode.';
+        case '/digest': {
+            const snapshot = snapshotForTelegramChat(message.chat.id) ?? ensureTelegramWorkspace({ chatId: message.chat.id, userId: message.from?.id, username: message.from?.username, firstName: message.from?.first_name });
+            return `${routeSettingsCommand({ workspaceId: snapshot.workspace.id, args: ['show'] }).split('\n').slice(1, 4).join('\n')}\nDigest stub: ${listLocalIncidents().length} total incident(s) tracked locally.`;
+        }
+        case '/settings': {
+            const snapshot = snapshotForTelegramChat(message.chat.id) ?? ensureTelegramWorkspace({ chatId: message.chat.id, userId: message.from?.id, username: message.from?.username, firstName: message.from?.first_name });
+            return routeSettingsCommand({ workspaceId: snapshot.workspace.id, args: parts.slice(1) });
+        }
         default:
             return 'Unknown command. Try /status, /incidents, /scan, /digest, or /settings.';
     }
