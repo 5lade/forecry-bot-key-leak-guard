@@ -69,7 +69,7 @@ acceptance: |
   Fixture scan reports >=0.95 true_positive_rate and <=0.05 false_positive_rate. Tests verify raw fixture secrets do not appear in findings output, logs, or snapshots; only fingerprints and redacted excerpts appear.
 ```
 
-- [ ] key-leak-p0-004-github-webhook-foundation
+- [x] key-leak-p0-004-github-webhook-foundation
 ```yaml
 id: key-leak-p0-004-github-webhook-foundation
 tier: P0
