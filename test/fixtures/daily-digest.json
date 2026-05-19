@@ -1,0 +1,13 @@
+{
+  "workspaceName": "Demo Founder Workspace",
+  "generatedAt": "2026-05-19T04:30:00Z",
+  "days": [
+    { "date": "2026-05-13", "reposScanned": 4, "incidentsOpened": 1, "incidentsResolved": 0, "unresolvedRotationTasks": 2, "providerSpendDeltas": { "openai": 4.25 }, "risks": [{ "label": "OpenAI key in backend env fixture", "severity": "critical", "provider": "openai", "repo": "demo/api" }] },
+    { "date": "2026-05-14", "reposScanned": 4, "incidentsOpened": 0, "incidentsResolved": 1, "unresolvedRotationTasks": 1, "providerSpendDeltas": { "anthropic": 1.5 }, "risks": [{ "label": "Pending OpenAI rotation verification", "severity": "high", "provider": "openai", "repo": "demo/api" }] },
+    { "date": "2026-05-15", "reposScanned": 5, "incidentsOpened": 2, "incidentsResolved": 1, "unresolvedRotationTasks": 3, "providerSpendDeltas": { "replicate": 0.75 }, "risks": [{ "label": "Replicate token in docs sample", "severity": "medium", "provider": "replicate", "repo": "demo/web" }] },
+    { "date": "2026-05-16", "reposScanned": 5, "incidentsOpened": 0, "incidentsResolved": 1, "unresolvedRotationTasks": 2, "providerSpendDeltas": { "openai": -1.25, "stripe": 0 }, "risks": [{ "label": "No critical findings", "severity": "low" }] },
+    { "date": "2026-05-17", "reposScanned": 6, "incidentsOpened": 1, "incidentsResolved": 0, "unresolvedRotationTasks": 2, "providerSpendDeltas": { "huggingface": 2 }, "risks": [{ "label": "Hugging Face token committed to notebook", "severity": "high", "provider": "huggingface", "repo": "demo/ml" }] },
+    { "date": "2026-05-18", "reposScanned": 6, "incidentsOpened": 0, "incidentsResolved": 1, "unresolvedRotationTasks": 1, "providerSpendDeltas": { "openai": 0.8 }, "risks": [{ "label": "Rotation task overdue", "severity": "medium", "provider": "openai", "repo": "demo/api" }] },
+    { "date": "2026-05-19", "reposScanned": 7, "incidentsOpened": 0, "incidentsResolved": 1, "unresolvedRotationTasks": 0, "providerSpendDeltas": { "anthropic": -0.5, "gemini": 0.4 }, "risks": [{ "label": "All rotations verified", "severity": "low" }] }
+  ]
+}
