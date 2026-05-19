@@ -317,7 +317,7 @@ acceptance: |
 
 ## P3 — Nice-to-have
 
-- [ ] key-leak-p3-001-stripe-plan-gates
+- [x] key-leak-p3-001-stripe-plan-gates
 ```yaml
 id: key-leak-p3-001-stripe-plan-gates
 tier: P3
