@@ -112,7 +112,7 @@ acceptance: |
 
 ## P1 — Core features
 
-- [ ] key-leak-p1-001-onboarding-and-repo-sync
+- [x] key-leak-p1-001-onboarding-and-repo-sync
 ```yaml
 id: key-leak-p1-001-onboarding-and-repo-sync
 tier: P1
