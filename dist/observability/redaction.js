@@ -7,18 +7,21 @@ const SECRET_VALUE_PATTERNS = [
     /-----BEGIN [A-Z ]*PRIVATE KEY-----[\s\S]*?-----END [A-Z ]*PRIVATE KEY-----/g
 ];
 export function redactSecrets(value) {
-    return redactValue(value);
+    return redactValue(value, new WeakSet());
 }
-function redactValue(value) {
+function redactValue(value, seen) {
     if (typeof value === 'string')
         return redactString(value);
-    if (Array.isArray(value))
-        return value.map(redactValue);
     if (!value || typeof value !== 'object')
         return value;
+    if (seen.has(value))
+        return '[Circular]';
+    seen.add(value);
+    if (Array.isArray(value))
+        return value.map((item) => redactValue(item, seen));
     const output = {};
     for (const [key, child] of Object.entries(value)) {
-        output[key] = SECRET_KEY_PATTERN.test(key) ? '[redacted]' : redactValue(child);
+        output[key] = SECRET_KEY_PATTERN.test(key) ? '[redacted]' : redactValue(child, seen);
     }
     return output;
 }

@@ -38,6 +38,14 @@ test('redaction removes secret keys and token-looking values', () => {
     assert.equal(redacted.nested.note, 'token [redacted]');
     assert.equal(redactString('sk-abcdefghijklmnopqrstuvwxyz1234567890'), '[redacted]');
 });
+test('redaction handles circular objects without recursive stack overflow', () => {
+    const cyclic = { token: '123:abc' };
+    cyclic.nested = { parent: cyclic, note: 'safe' };
+    const redacted = redactSecrets(cyclic);
+    assert.equal(redacted.token, '[redacted]');
+    assert.equal(redacted.nested?.parent, '[Circular]');
+    assert.equal(redacted.nested?.note, 'safe');
+});
 test('job lock rejects concurrent runs and releases after completion', async () => {
     resetMetricsForTests();
     let release;
